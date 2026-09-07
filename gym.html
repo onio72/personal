@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro Gimnasio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 pb-20">
+  <div class="max-w-xl mx-auto">
+    <header class="mb-6 flex justify-between items-center border-b border-slate-700 pb-3">
+      <h1 class="text-xl font-bold text-emerald-400">Gym Tracker</h1>
+      <span id="sessionTimer" class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full">Hora inicio: --:--</span>
+    </header>
+
+    <div class="bg-slate-800 rounded-xl p-4 mb-5 shadow-lg border border-slate-700 space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Fecha</label>
+          <input id="sessionDate" type="date" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Hora Inicio</label>
+          <input id="sessionTime" type="time" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-400 block mb-1">Seleccionar Rutina</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnR1" onclick="selectRoutine('rutina1')" class="py-2 rounded-lg font-semibold text-sm border border-emerald-500 bg-emerald-500 text-slate-900 transition">Rutina 1 (Día 1)</button>
+          <button id="btnR2" onclick="selectRoutine('rutina2')" class="py-2 rounded-lg font-semibold text-sm border border-slate-700 bg-slate-900 text-slate-300 transition">Rutina 2 (Día 2)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="exerciseList" class="space-y-4"></div>
+
+    <div class="mt-6 flex gap-3">
+      <button onclick="saveCurrentWorkout()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl transition">Guardar Sesión</button>
+      <button onclick="viewHistory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 transition">Historial</button>
+    </div>
+
+    <div id="historyView" class="hidden mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
+      <h3 class="font-bold text-emerald-400 mb-3 text-sm uppercase tracking-wide">Últimas sesiones guardadas</h3>
+      <div id="historyLog" class="text-xs space-y-2 text-slate-300 max-h-60 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <script>
+    // Plantillas de rutinas basadas en tus datos
+    const routineTemplates = {
+      rutina1: [
+        { id: "E04", name: "E04", targetSets: 3, targetReps: 15, defaultKg: 50, notes: "Subir a 45kg si se completan" },
+        { id: "E01", name: "E01", targetSets: 4, targetReps: 10, defaultKg: 93, notes: "Objetivo 85-93kg" },
+        { id: "E05", name: "E05", targetSets: 4, targetReps: 12, defaultKg: 50, notes: "Subir a 45kg" },
+        { id: "A01", name: "A01", targetSets: 4, targetReps: 10, defaultKg: 35, notes: "Descenso a 25-30kg si cuesta" },
+        { id: "C02", name: "C02", targetSets: 3, targetReps: 10, defaultKg: 30, notes: "Ajustar si fallo" },
+        { id: "A03", name: "A03", targetSets: 3, targetReps: 10, defaultKg: 30, notes: "Subir a 40kg" },
+        { id: "ZANC", name: "Zancadas pesas", targetSets: 3, targetReps: 12, defaultKg: 6, notes: "6kg por mano" }
+      ],
+      rutina2: [
+        { id: "B02", name: "B02", targetSets: 4, targetReps: 10, defaultKg: 50, notes: "Bajo a 45kg" },
+        { id: "B01", name: "B01", targetSets: 4, targetReps: 12, defaultKg: 40, notes: "Bajo a 35kg" },
+        { id: "C03", name: "C03", targetSets: 3, targetReps: 10, defaultKg: 25, notes: "" },
+        { id: "A21", name: "A21", targetSets: 3, targetReps: 12, defaultKg: 35, notes: "" },
+        { id: "D01", name: "D01", targetSets: 3, targetReps: 10, defaultKg: 25, notes: "Bajo a 20kg" },
+        { id: "C10", name: "C10 Tpoleas", targetSets: 3, targetReps: 12, defaultKg: 55, notes: "Bajo a 45kg" },
+        { id: "F10", name: "F10", targetSets: 3, targetReps: 15, defaultKg: 40, notes: "" },
+        { id: "A02", name: "A02", targetSets: 4, targetReps: 12, defaultKg: 35, notes: "" }
+      ]
+    };
+
+    let activeRoutine = "rutina1";
+    let completedSets = {};
+
+    function init() {
+      const now = new Date();
+      document.getElementById("sessionDate").value = now.toISOString().split("T")[0];
+      const timeString = now.toTimeString().slice(0, 5);
+      document.getElementById("sessionTime").value = timeString;
+      document.getElementById("sessionTimer").innerText = `Hora inicio: ${timeString}`;
+      selectRoutine("rutina1");
+    }
+
+    function selectRoutine(routineKey) {
+      activeRoutine = routineKey;
+      completedSets = {};
+
+      const btn1 = document.getElementById("btnR1");
+      const btn2 = document.getElementById("btnR2");
+
+      if (routineKey === "rutina1") {
+        btn1.className = "py-2 rounded-lg font-semibold text-sm border border-emerald-500 bg-emerald-500 text-slate-950 transition";
+        btn2.className = "py-2 rounded-lg font-semibold text-sm border border-slate-700 bg-slate-900 text-slate-300 transition";
+      } else {
+        btn2.className = "py-2 rounded-lg font-semibold text-sm border border-emerald-500 bg-emerald-500 text-slate-950 transition";
+        btn1.className = "py-2 rounded-lg font-semibold text-sm border border-slate-700 bg-slate-900 text-slate-300 transition";
+      }
+
+      renderExercises();
+    }
+
+    function getLastLog(exId) {
+      const history = JSON.parse(localStorage.getItem("gymHistory") || "[]");
+      for (let session of history.slice().reverse()) {
+        const match = session.exercises.find(e => e.id === exId);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    function renderExercises() {
+      const container = document.getElementById("exerciseList");
+      container.innerHTML = "";
+      const exercises = routineTemplates[activeRoutine];
+
+      exercises.forEach(ex => {
+        const last = getLastLog(ex.id);
+        const prevSets = last ? last.setsTarget : ex.targetSets;
+        const prevReps = last ? last.repsTarget : ex.targetReps;
+        const prevKg = last ? last.kg : ex.defaultKg;
+        completedSets[ex.id] = 0;
+
+        const card = document.createElement("div");
+        card.className = "bg-slate-800 border border-slate-700 rounded-xl p-4 shadow";
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h2 class="font-bold text-base text-white">${ex.name}</h2>
+              <p class="text-xs text-slate-400">Objetivo: ${prevSets} series × ${prevReps} reps | ${prevKg} kg</p>
+            </div>
+            <button id="counter-${ex.id}" onclick="incrementSet('${ex.id}', ${prevSets})" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition">
+              Completadas: <span id="count-val-${ex.id}">0</span>/${prevSets}
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <span class="text-slate-400 block mb-1">Series</span>
+              <input type="number" id="sets-${ex.id}" value="${prevSets}" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-center text-white focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <span class="text-slate-400 block mb-1">Reps/serie</span>
+              <input type="number" id="reps-${ex.id}" value="${prevReps}" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-center text-white focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <span class="text-slate-400 block mb-1">Peso (kg)</span>
+              <input type="number" step="0.5" id="kg-${ex.id}" value="${prevKg}" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-center text-white focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+          <input type="text" id="notes-${ex.id}" placeholder="Notas (fallo, bajada de peso...)" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function incrementSet(exId, maxSets) {
+      completedSets[exId] = (completedSets[exId] || 0) + 1;
+      const countEl = document.getElementById(`count-val-${exId}`);
+      countEl.innerText = completedSets[exId];
+
+      const btn = document.getElementById(`counter-${exId}`);
+      if (completedSets[exId] >= maxSets) {
+        btn.classList.remove("bg-emerald-500/20", "text-emerald-400", "border-emerald-500/30");
+        btn.classList.add("bg-emerald-500", "text-slate-950");
+      }
+    }
+
+    function saveCurrentWorkout() {
+      const date = document.getElementById("sessionDate").value;
+      const time = document.getElementById("sessionTime").value;
+      const exercises = routineTemplates[activeRoutine].map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        setsTarget: parseInt(document.getElementById(`sets-${ex.id}`).value) || 0,
+        repsTarget: parseInt(document.getElementById(`reps-${ex.id}`).value) || 0,
+        kg: parseFloat(document.getElementById(`kg-${ex.id}`).value) || 0,
+        completedSets: completedSets[ex.id] || 0,
+        note: document.getElementById(`notes-${ex.id}`).value
+      }));
+
+      const record = { date, time, routine: activeRoutine, exercises };
+      const history = JSON.parse(localStorage.getItem("gymHistory") || "[]");
+      history.push(record);
+      localStorage.setItem("gymHistory", JSON.stringify(history));
+
+      alert("Entrenamiento guardado correctamente.");
+    }
+
+    function viewHistory() {
+      const panel = document.getElementById("historyView");
+      const log = document.getElementById("historyLog");
+      panel.classList.toggle("hidden");
+
+      const history = JSON.parse(localStorage.getItem("gymHistory") || "[]");
+      if (history.length === 0) {
+        log.innerHTML = "<p class='text-slate-500'>No hay entrenamientos previos registrados.</p>";
+        return;
+      }
+
+      log.innerHTML = history.slice().reverse().map(h => `
+        <div class="border-b border-slate-700 pb-2 mb-2">
+          <div class="flex justify-between font-bold text-slate-200">
+            <span>${h.date} (${h.time})</span>
+            <span class="text-emerald-400 uppercase">${h.routine}</span>
+          </div>
+          <p class="text-slate-400 mt-1">${h.exercises.map(e => `${e.name}: ${e.completedSets}/${e.setsTarget} series @ ${e.kg}kg`).join(" | ")}</p>
+        </div>
+      `).join("");
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
