@@ -282,6 +282,10 @@
     }
     function deleteExercise(i) {
       collectEditor();
+      const ex = routineTemplates[editorRoutine][i];
+      if (!ex) return;
+      const label = ex.name || ex.id || "este ejercicio";
+      if (!confirm('¿Seguro que quieres eliminar "' + label + '" de esta rutina?')) return;
       routineTemplates[editorRoutine].splice(i,1);
       renderRoutineEditor(editorRoutine);
     }
