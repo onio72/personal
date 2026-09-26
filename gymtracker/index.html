@@ -31,6 +31,7 @@
           <button id="btnR1" onclick="selectRoutine('rutina1')" class="py-2 rounded-lg font-semibold text-sm border border-emerald-500 bg-emerald-500 text-slate-900 transition">Rutina 1 (Día 1)</button>
           <button id="btnR2" onclick="selectRoutine('rutina2')" class="py-2 rounded-lg font-semibold text-sm border border-slate-700 bg-slate-900 text-slate-300 transition">Rutina 2 (Día 2)</button>
         </div>
+        <button onclick="openRoutineEditor()" class="mt-3 w-full py-2.5 rounded-lg border border-slate-600 bg-slate-900 text-slate-200 font-semibold text-sm">✎ Editar rutinas</button>
       </div>
     </div>
 
@@ -41,6 +42,22 @@
       <button onclick="viewHistory()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 transition">Historial</button>
     </div>
 
+    <div id="routineEditor" class="hidden fixed inset-0 z-50 bg-slate-950/95 overflow-y-auto p-4">
+      <div class="max-w-xl mx-auto pb-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-emerald-400">Editar rutinas</h2>
+          <button onclick="closeRoutineEditor()" class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700">Cerrar</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <button id="editR1" onclick="renderRoutineEditor('rutina1')" class="py-3 rounded-lg font-bold bg-emerald-500 text-slate-950">Día 1</button>
+          <button id="editR2" onclick="renderRoutineEditor('rutina2')" class="py-3 rounded-lg font-bold bg-slate-800 border border-slate-700">Día 2</button>
+        </div>
+        <div id="editorList" class="space-y-3"></div>
+        <button onclick="addExercise()" class="mt-4 w-full py-3 rounded-xl border border-dashed border-emerald-500 text-emerald-400 font-bold">+ Añadir ejercicio</button>
+        <button onclick="saveRoutineEditor()" class="mt-3 w-full py-4 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg">Guardar cambios</button>
+      </div>
+    </div>
+
     <div id="historyView" class="hidden mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
       <h3 class="font-bold text-emerald-400 mb-3 text-sm uppercase tracking-wide">Últimas sesiones guardadas</h3>
       <div id="historyLog" class="text-xs space-y-2 text-slate-300 max-h-60 overflow-y-auto"></div>
@@ -49,7 +66,7 @@
 
   <script>
     // Plantillas de rutinas basadas en tus datos
-    const routineTemplates = {
+    let routineTemplates = {
       rutina1: [
         { id: "E04", name: "E04", targetSets: 3, targetReps: 15, defaultKg: 50, notes: "Subir a 45kg si se completan" },
         { id: "E01", name: "E01", targetSets: 4, targetReps: 10, defaultKg: 93, notes: "Objetivo 85-93kg" },
@@ -71,8 +88,16 @@
       ]
     };
 
+    const defaultRoutineTemplates = JSON.parse(JSON.stringify(routineTemplates));
+    try {
+      const savedRoutines = JSON.parse(localStorage.getItem("gymRoutineTemplates") || "null");
+      if (savedRoutines && savedRoutines.rutina1 && savedRoutines.rutina2) routineTemplates = savedRoutines;
+    } catch(e) {}
+
     let activeRoutine = "rutina1";
     let completedSets = {};
+    let suppressCounterClick = false;
+    let editorRoutine = "rutina1";
 
     function init() {
       const now = new Date();
@@ -152,19 +177,127 @@
           <input type="text" id="notes-${ex.id}" placeholder="Notas (fallo, bajada de peso...)" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
         `;
         container.appendChild(card);
+        bindLongPress(card.querySelector("#counter-" + ex.id), ex.id);
       });
     }
 
-    function incrementSet(exId, maxSets) {
-      completedSets[exId] = (completedSets[exId] || 0) + 1;
-      const countEl = document.getElementById(`count-val-${exId}`);
-      countEl.innerText = completedSets[exId];
+    function bindLongPress(btn, exId) {
+      let timer = null;
+      let longPressed = false;
+      const start = (ev) => {
+        longPressed = false;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          longPressed = true;
+          suppressCounterClick = true;
+          decrementSet(exId);
+          if (navigator.vibrate) navigator.vibrate(35);
+          setTimeout(() => suppressCounterClick = false, 450);
+        }, 600);
+      };
+      const end = () => clearTimeout(timer);
+      btn.addEventListener("touchstart", start, {passive:true});
+      btn.addEventListener("touchend", end, {passive:true});
+      btn.addEventListener("touchcancel", end, {passive:true});
+      btn.addEventListener("mousedown", start);
+      btn.addEventListener("mouseup", end);
+      btn.addEventListener("mouseleave", end);
+      btn.addEventListener("contextmenu", e => e.preventDefault());
+    }
 
-      const btn = document.getElementById(`counter-${exId}`);
-      if (completedSets[exId] >= maxSets) {
-        btn.classList.remove("bg-emerald-500/20", "text-emerald-400", "border-emerald-500/30");
-        btn.classList.add("bg-emerald-500", "text-slate-950");
+    function updateCounter(exId) {
+      const ex = routineTemplates[activeRoutine].find(e => e.id === exId);
+      const maxSets = parseInt(document.getElementById("sets-" + exId)?.value) || ex?.targetSets || 0;
+      const val = completedSets[exId] || 0;
+      const countEl = document.getElementById("count-val-" + exId);
+      if (countEl) countEl.innerText = val;
+      const btn = document.getElementById("counter-" + exId);
+      if (!btn) return;
+      if (val >= maxSets) {
+        btn.classList.remove("bg-emerald-500/20","text-emerald-400","border-emerald-500/30");
+        btn.classList.add("bg-emerald-500","text-slate-950");
+      } else {
+        btn.classList.add("bg-emerald-500/20","text-emerald-400","border-emerald-500/30");
+        btn.classList.remove("bg-emerald-500","text-slate-950");
       }
+    }
+
+    function decrementSet(exId) {
+      completedSets[exId] = Math.max(0, (completedSets[exId] || 0) - 1);
+      updateCounter(exId);
+    }
+
+    function incrementSet(exId, maxSets) {
+      if (suppressCounterClick) return;
+      completedSets[exId] = Math.min(maxSets, (completedSets[exId] || 0) + 1);
+      updateCounter(exId);
+    }
+
+    function openRoutineEditor() {
+      document.getElementById("routineEditor").classList.remove("hidden");
+      renderRoutineEditor(activeRoutine);
+    }
+    function closeRoutineEditor() {
+      document.getElementById("routineEditor").classList.add("hidden");
+    }
+    function renderRoutineEditor(key) {
+      editorRoutine = key;
+      document.getElementById("editR1").className = key==="rutina1" ? "py-3 rounded-lg font-bold bg-emerald-500 text-slate-950" : "py-3 rounded-lg font-bold bg-slate-800 border border-slate-700";
+      document.getElementById("editR2").className = key==="rutina2" ? "py-3 rounded-lg font-bold bg-emerald-500 text-slate-950" : "py-3 rounded-lg font-bold bg-slate-800 border border-slate-700";
+      const list = document.getElementById("editorList");
+      list.innerHTML = routineTemplates[key].map((e,i) => `
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-3" data-edit-index="${i}">
+          <div class="flex gap-2 mb-2">
+            <input data-f="id" value="${e.id}" placeholder="Código" class="w-24 bg-slate-900 border border-slate-700 rounded p-2 font-bold">
+            <input data-f="name" value="${e.name}" placeholder="Nombre" class="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded p-2">
+            <button onclick="deleteExercise(${i})" class="px-3 rounded bg-red-950 text-red-300 border border-red-900">×</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="text-xs text-slate-400">Series<input data-f="targetSets" type="number" min="1" value="${e.targetSets}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"></label>
+            <label class="text-xs text-slate-400">Reps<input data-f="targetReps" type="number" min="1" value="${e.targetReps}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"></label>
+            <label class="text-xs text-slate-400">kg<input data-f="defaultKg" type="number" step="0.5" min="0" value="${e.defaultKg}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"></label>
+          </div>
+          <input data-f="notes" value="${e.notes||""}" placeholder="Nota" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+          <div class="flex gap-2 mt-2">
+            <button onclick="moveExercise(${i},-1)" class="flex-1 py-2 bg-slate-900 rounded border border-slate-700">↑ Subir</button>
+            <button onclick="moveExercise(${i},1)" class="flex-1 py-2 bg-slate-900 rounded border border-slate-700">↓ Bajar</button>
+          </div>
+        </div>`).join("");
+    }
+    function collectEditor() {
+      const cards = [...document.querySelectorAll("#editorList [data-edit-index]")];
+      routineTemplates[editorRoutine] = cards.map(c => ({
+        id: c.querySelector('[data-f="id"]').value.trim() || "EJ",
+        name: c.querySelector('[data-f="name"]').value.trim() || "Ejercicio",
+        targetSets: Math.max(1, parseInt(c.querySelector('[data-f="targetSets"]').value)||1),
+        targetReps: Math.max(1, parseInt(c.querySelector('[data-f="targetReps"]').value)||1),
+        defaultKg: Math.max(0, parseFloat(c.querySelector('[data-f="defaultKg"]').value)||0),
+        notes: c.querySelector('[data-f="notes"]').value.trim()
+      }));
+    }
+    function addExercise() {
+      collectEditor();
+      routineTemplates[editorRoutine].push({id:"NUEVO",name:"Nuevo ejercicio",targetSets:3,targetReps:10,defaultKg:0,notes:""});
+      renderRoutineEditor(editorRoutine);
+    }
+    function deleteExercise(i) {
+      collectEditor();
+      routineTemplates[editorRoutine].splice(i,1);
+      renderRoutineEditor(editorRoutine);
+    }
+    function moveExercise(i,delta) {
+      collectEditor();
+      const arr=routineTemplates[editorRoutine], j=i+delta;
+      if(j<0||j>=arr.length) return;
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+      renderRoutineEditor(editorRoutine);
+    }
+    function saveRoutineEditor() {
+      collectEditor();
+      localStorage.setItem("gymRoutineTemplates", JSON.stringify(routineTemplates));
+      selectRoutine(activeRoutine);
+      closeRoutineEditor();
+      alert("Rutinas guardadas en este dispositivo.");
     }
 
     function saveCurrentWorkout() {
