@@ -58,6 +58,16 @@
       </div>
     </div>
 
+    <div class="mt-4 bg-slate-800 p-4 rounded-xl border border-slate-700">
+      <h3 class="font-bold text-emerald-400 mb-2 text-sm uppercase tracking-wide">Copia de seguridad</h3>
+      <p class="text-xs text-slate-400 mb-3">Guarda o recupera historial y rutinas. La importación pide confirmación antes de sustituir los datos.</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="exportBackupXML()" class="py-3 rounded-lg bg-slate-900 border border-slate-600 text-slate-100 font-semibold">↓ Exportar XML</button>
+        <button onclick="document.getElementById('backupFile').click()" class="py-3 rounded-lg bg-slate-900 border border-slate-600 text-slate-100 font-semibold">↑ Importar XML</button>
+      </div>
+      <input id="backupFile" type="file" accept=".xml,text/xml,application/xml" class="hidden" onchange="importBackupXML(event)">
+    </div>
+
     <div id="historyView" class="hidden mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
       <h3 class="font-bold text-emerald-400 mb-3 text-sm uppercase tracking-wide">Últimas sesiones guardadas</h3>
       <div id="historyLog" class="text-xs space-y-2 text-slate-300 max-h-60 overflow-y-auto"></div>
@@ -302,6 +312,105 @@
       selectRoutine(activeRoutine);
       closeRoutineEditor();
       alert("Rutinas guardadas en este dispositivo.");
+    }
+
+    function xmlEscape(value) {
+      return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&apos;");
+    }
+
+    function exportBackupXML() {
+      let history = [];
+      try { history = JSON.parse(localStorage.getItem("gymHistory") || "[]"); } catch(e) {}
+      const routines = routineTemplates;
+      const created = new Date().toISOString();
+
+      const routineXML = Object.entries(routines).map(([key, list]) =>
+        `    <routine id="${xmlEscape(key)}">\n` +
+        list.map(e => `      <exercise id="${xmlEscape(e.id)}"><name>${xmlEscape(e.name)}</name><sets>${xmlEscape(e.targetSets)}</sets><reps>${xmlEscape(e.targetReps)}</reps><kg>${xmlEscape(e.defaultKg)}</kg><notes>${xmlEscape(e.notes || "")}</notes></exercise>`).join("\n") +
+        `\n    </routine>`
+      ).join("\n");
+
+      const historyXML = history.map((h, si) =>
+        `    <session index="${si}"><date>${xmlEscape(h.date)}</date><time>${xmlEscape(h.time)}</time><routine>${xmlEscape(h.routine)}</routine>\n` +
+        (h.exercises || []).map(e => `      <exercise id="${xmlEscape(e.id)}"><name>${xmlEscape(e.name)}</name><setsTarget>${xmlEscape(e.setsTarget)}</setsTarget><repsTarget>${xmlEscape(e.repsTarget)}</repsTarget><kg>${xmlEscape(e.kg)}</kg><completedSets>${xmlEscape(e.completedSets)}</completedSets><note>${xmlEscape(e.note || "")}</note></exercise>`).join("\n") +
+        `\n    </session>`
+      ).join("\n");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gymTrackerBackup version="1" created="${xmlEscape(created)}">\n  <routines>\n${routineXML}\n  </routines>\n  <history>\n${historyXML}\n  </history>\n</gymTrackerBackup>`;
+      const blob = new Blob([xml], {type:"application/xml;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const d = new Date();
+      const stamp = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      a.href = url;
+      a.download = "GymTracker_backup_"+stamp+".xml";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function nodeText(parent, tag, fallback="") {
+      const n = parent.querySelector(":scope > " + tag);
+      return n ? n.textContent : fallback;
+    }
+
+    async function importBackupXML(event) {
+      const input = event.target;
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const doc = new DOMParser().parseFromString(text, "application/xml");
+        if (doc.querySelector("parsererror") || !doc.querySelector("gymTrackerBackup")) throw new Error("XML no válido");
+
+        const newRoutines = {rutina1:[], rutina2:[]};
+        doc.querySelectorAll("routines > routine").forEach(r => {
+          const key = r.getAttribute("id");
+          if (!(key in newRoutines)) return;
+          r.querySelectorAll(":scope > exercise").forEach(e => newRoutines[key].push({
+            id: e.getAttribute("id") || "EJ",
+            name: nodeText(e,"name","Ejercicio"),
+            targetSets: Math.max(1, parseInt(nodeText(e,"sets","1")) || 1),
+            targetReps: Math.max(1, parseInt(nodeText(e,"reps","1")) || 1),
+            defaultKg: Math.max(0, parseFloat(nodeText(e,"kg","0")) || 0),
+            notes: nodeText(e,"notes","")
+          }));
+        });
+        if (!newRoutines.rutina1.length || !newRoutines.rutina2.length) throw new Error("Faltan las rutinas Día 1 o Día 2");
+
+        const newHistory = [];
+        doc.querySelectorAll("history > session").forEach(h => {
+          const exercises = [];
+          h.querySelectorAll(":scope > exercise").forEach(e => exercises.push({
+            id: e.getAttribute("id") || "",
+            name: nodeText(e,"name",""),
+            setsTarget: parseInt(nodeText(e,"setsTarget","0")) || 0,
+            repsTarget: parseInt(nodeText(e,"repsTarget","0")) || 0,
+            kg: parseFloat(nodeText(e,"kg","0")) || 0,
+            completedSets: parseInt(nodeText(e,"completedSets","0")) || 0,
+            note: nodeText(e,"note","")
+          }));
+          newHistory.push({
+            date: nodeText(h,"date",""),
+            time: nodeText(h,"time",""),
+            routine: nodeText(h,"routine",""),
+            exercises
+          });
+        });
+
+        const msg = `La copia contiene ${newHistory.length} sesiones.\n\nAl importar se sustituirán el historial y las rutinas actuales de este dispositivo.\n\n¿Continuar?`;
+        if (!confirm(msg)) return;
+        localStorage.setItem("gymHistory", JSON.stringify(newHistory));
+        localStorage.setItem("gymRoutineTemplates", JSON.stringify(newRoutines));
+        routineTemplates = newRoutines;
+        selectRoutine(activeRoutine);
+        alert("Copia restaurada correctamente: " + newHistory.length + " sesiones.");
+      } catch(err) {
+        alert("No se pudo importar la copia. " + err.message);
+      } finally {
+        input.value = "";
+      }
     }
 
     function saveCurrentWorkout() {
