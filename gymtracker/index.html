@@ -108,6 +108,12 @@
     let completedSets = {};
     let suppressCounterClick = false;
     let editorRoutine = "rutina1";
+    const importedNotesPreview = "Semana 07/09\n07/09 Día 2: B02 4*10 50kg 8ª Bajo 45kg 4; B01 4*12 40kg 10ª Bajo 35kg 4; C03 3*10 25kg 4ª 2; A21 3*12 35kg 5ª 3; D01 3*10 25kg 9ª bajo 20kg 2; C10 Tpoleas 3*12 9ª 55kg bajo 45kg 3; F10 15*3 40kg 5ª 3; A02 4*12 35kg 9ª 3\n19/09 Día 2: B02 4*10 50kg 9ª Bajo 40kg 4; B01 4*12 40kg 11ª Bajo 35kg 4; C03 3*10 25kg 5ª 3; A21 3*12 35kg 6ª 3; D01 3*10 25kg 10ª bajo 20kg 3; C10 Tpoleas 3*12 10ª 55kg bajo 40kg 3; F10 15*3 40kg 6ª 3; A02 4*12 35kg 10ª Bajo a 30kg 3\n23/09 Día 2: B02 4*10 50kg 10ª Bajo 40kg 4; B01 4*12 40kg 12ª Bajo 35kg 4; C03 3*10 25kg 6ª 2; A21 3*12 35kg 7ª 3; D01 3*10 25kg 11ª bajo 20kg 1; C10 Tpoleas 3*12 11ª 55kg bajo 40kg 3; F10 15*3 40kg 7ª 2; A02 4*12 35kg 11ª Bajo a 30kg 3\n26/09 Día 2: B02 4*10 50kg 11ª Bajo 40kg 4; B01 4*12 40kg 13ª Bajo 35kg 4; C03 3*10 25kg 7ª 3; A21 3*12 35kg 8ª 3; D01 3*10 25kg 12ª bajo 20kg 3; C10 Tpoleas 3*12 12ª 55kg Subo a 45kg 3; F10 15*3 40kg 8ª 3; A02 4*12 35kg 12ª Bajo a 30kg 3";
+    const importedNotesSource = "Apple Notes · exportación de 48 notas";
+    if (!localStorage.getItem("gymImportedNotesRaw")) {
+      localStorage.setItem("gymImportedNotesRaw", importedNotesPreview);
+      localStorage.setItem("gymImportedNotesSource", importedNotesSource);
+    }
 
     function init() {
       const now = new Date();
@@ -325,6 +331,8 @@
       try { history = JSON.parse(localStorage.getItem("gymHistory") || "[]"); } catch(e) {}
       const routines = routineTemplates;
       const created = new Date().toISOString();
+      const importedRaw = localStorage.getItem("gymImportedNotesRaw") || "";
+      const importedSource = localStorage.getItem("gymImportedNotesSource") || "";
 
       const routineXML = Object.entries(routines).map(([key, list]) =>
         `    <routine id="${xmlEscape(key)}">\n` +
@@ -338,7 +346,7 @@
         `\n    </session>`
       ).join("\n");
 
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gymTrackerBackup version="1" created="${xmlEscape(created)}">\n  <routines>\n${routineXML}\n  </routines>\n  <history>\n${historyXML}\n  </history>\n</gymTrackerBackup>`;
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gymTrackerBackup version="1" created="${xmlEscape(created)}">\n  <routines>\n${routineXML}\n  </routines>\n  <history>\n${historyXML}\n  </history>\n  <importedNotes source="${xmlEscape(importedSource)}">${xmlEscape(importedRaw)}</importedNotes>\n</gymTrackerBackup>`;
       const blob = new Blob([xml], {type:"application/xml;charset=utf-8"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -403,6 +411,11 @@
         if (!confirm(msg)) return;
         localStorage.setItem("gymHistory", JSON.stringify(newHistory));
         localStorage.setItem("gymRoutineTemplates", JSON.stringify(newRoutines));
+        const importedNode = doc.querySelector("gymTrackerBackup > importedNotes");
+        if (importedNode) {
+          localStorage.setItem("gymImportedNotesRaw", importedNode.textContent || "");
+          localStorage.setItem("gymImportedNotesSource", importedNode.getAttribute("source") || "");
+        }
         routineTemplates = newRoutines;
         selectRoutine(activeRoutine);
         alert("Copia restaurada correctamente: " + newHistory.length + " sesiones.");
@@ -440,7 +453,8 @@
       panel.classList.toggle("hidden");
 
       const history = JSON.parse(localStorage.getItem("gymHistory") || "[]");
-      if (history.length === 0) {
+      const legacy = localStorage.getItem("gymImportedNotesRaw") || "";
+      if (history.length === 0 && !legacy) {
         log.innerHTML = "<p class='text-slate-500'>No hay entrenamientos previos registrados.</p>";
         return;
       }
@@ -454,6 +468,14 @@
           <p class="text-slate-400 mt-1">${h.exercises.map(e => `${e.name}: ${e.completedSets}/${e.setsTarget} series @ ${e.kg}kg`).join(" | ")}</p>
         </div>
       `).join("");
+      if (legacy) {
+        log.innerHTML += `
+          <details class="mt-4 border-t border-slate-700 pt-3">
+            <summary class="cursor-pointer font-bold text-emerald-400">Histórico importado de Apple Notes</summary>
+            <p class="text-slate-500 mt-2 mb-2">Se conserva el texto original para no inventar datos en sesiones antiguas ambiguas.</p>
+            <pre class="whitespace-pre-wrap text-xs text-slate-300 bg-slate-900 p-3 rounded-lg max-h-96 overflow-y-auto">${legacy.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</pre>
+          </details>`;
+      }
     }
 
     window.onload = init;
