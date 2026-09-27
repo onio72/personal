@@ -609,36 +609,25 @@
       alert("Entrenamiento guardado correctamente.");
     }
 
-    function viewHistory() {
-      const panel = document.getElementById("historyView");
+    function renderHistory() {
       const log = document.getElementById("historyLog");
-      panel.classList.toggle("hidden");
-
-      const history = JSON.parse(localStorage.getItem("gymHistory") || "[]");
-      const legacy = localStorage.getItem("gymImportedNotesRaw") || "";
-      if (history.length === 0 && !legacy) {
-        log.innerHTML = "<p class='text-slate-500'>No hay entrenamientos previos registrados.</p>";
-        return;
-      }
-
-      log.innerHTML = history.slice().reverse().map(h => `
-        <div class="border-b border-slate-700 pb-2 mb-2">
-          <div class="flex justify-between font-bold text-slate-200">
-            <span>${h.date} (${h.time})</span>
-            <span class="text-emerald-400 uppercase">${h.routine}</span>
-          </div>
-          <p class="text-slate-400 mt-1">${h.exercises.map(e => `${e.name}: ${e.completedSets}/${e.setsTarget} series @ ${e.kg}kg`).join(" | ")}</p>
-        </div>
-      `).join("");
-      if (legacy) {
-        log.innerHTML += `
-          <details class="mt-4 border-t border-slate-700 pt-3">
-            <summary class="cursor-pointer font-bold text-emerald-400">Histórico importado de Apple Notes</summary>
-            <p class="text-slate-500 mt-2 mb-2">Se conserva el texto original para no inventar datos en sesiones antiguas ambiguas.</p>
-            <pre class="whitespace-pre-wrap text-xs text-slate-300 bg-slate-900 p-3 rounded-lg max-h-96 overflow-y-auto">${legacy.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</pre>
-          </details>`;
-      }
+      let history=[]; try { history=JSON.parse(localStorage.getItem("gymHistory")||"[]"); } catch(e) {}
+      const legacy=localStorage.getItem("gymImportedNotesRaw")||"";
+      if(!history.length && !legacy){ log.innerHTML="<p class='text-slate-500'>No hay entrenamientos previos registrados.</p>"; return; }
+      log.innerHTML=history.slice().reverse().map(h=>{
+        if(h.activityType==="cardio" || h.routine==="Cardio"){
+          const place=h.place==="gym"?"Gimnasio":"Casa / exterior";
+          const acts=(h.cardioExercises||[]).length ? h.cardioExercises.map(e=>e.name+": "+e.minutes+" min").join(" · ") : ((h.type||"Cardio")+": "+(h.durationMinutes||"")+" min");
+          return `<div class="border-b border-slate-700 pb-3"><div class="font-bold text-white">${h.date} · Cardio · ${place}</div><div class="text-slate-400 mt-1">${acts}${h.notes?" · "+h.notes:""}</div></div>`;
+        }
+        const label=(h.routine==="rutina1"||h.routine==="Día 1")?"Día 1":(h.routine==="rutina2"||h.routine==="Día 2")?"Día 2":h.routine;
+        return `<div class="border-b border-slate-700 pb-3"><div class="font-bold text-white">${h.date} · ${label}</div><div class="text-slate-400 mt-1">${(h.exercises||[]).map(e=>`${e.name||e.id}: ${e.completedSets||0}/${e.setsTarget} · ${e.kg}kg`).join(" | ")}</div></div>`;
+      }).join("");
+      if(legacy) log.innerHTML += `<details class="mt-4 border-t border-slate-700 pt-3"><summary class="cursor-pointer font-bold text-emerald-400">Histórico importado de Apple Notes</summary><pre class="whitespace-pre-wrap text-xs text-slate-300 bg-slate-900 p-3 rounded-lg max-h-96 overflow-y-auto mt-2">${legacy.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</pre></details>`;
     }
+    function openGlobalHistory(){ document.getElementById("historyView").classList.remove("hidden"); renderHistory(); }
+    function closeGlobalHistory(){ document.getElementById("historyView").classList.add("hidden"); }
+    function viewHistory(){ openGlobalHistory(); }
 
     window.onload = init;
   </script>
