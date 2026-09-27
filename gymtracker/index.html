@@ -6,7 +6,8 @@
   <title>Registro Gimnasio</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 pb-20">
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 pb-28">
+  <button id="globalHistoryBtn" onclick="openGlobalHistory()" class="fixed bottom-4 right-4 z-[70] bg-emerald-500 text-slate-950 font-bold px-5 py-3 rounded-full shadow-xl border border-emerald-300">Historial</button>
   <div class="max-w-xl mx-auto">
     <header class="mb-6 flex justify-between items-center border-b border-slate-700 pb-3">
       <h1 class="text-xl font-bold text-emerald-400">Gym Tracker</h1>
@@ -98,9 +99,14 @@
       <input id="backupFile" type="file" accept=".xml,text/xml,application/xml" class="hidden" onchange="importBackupXML(event)">
     </div>
 
-    <div id="historyView" class="hidden mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
-      <h3 class="font-bold text-emerald-400 mb-3 text-sm uppercase tracking-wide">Últimas sesiones guardadas</h3>
-      <div id="historyLog" class="text-xs space-y-2 text-slate-300 max-h-60 overflow-y-auto"></div>
+    <div id="historyView" class="hidden fixed inset-0 z-[80] bg-slate-950/95 p-4 overflow-y-auto">
+      <div class="max-w-xl mx-auto">
+        <div class="sticky top-0 bg-slate-950 py-3 flex items-center justify-between border-b border-slate-700 mb-4">
+          <h3 class="font-bold text-emerald-400 text-base uppercase tracking-wide">Historial</h3>
+          <button onclick="closeGlobalHistory()" class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 font-semibold">← Volver</button>
+        </div>
+        <div id="historyLog" class="text-sm space-y-3 text-slate-300"></div>
+      </div>
     </div>
   </div>
 
