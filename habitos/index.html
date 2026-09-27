@@ -65,7 +65,7 @@ function render(){
   if(h.type==="count")ctl=countControl(h.k,r[h.k]);
   if(h.type==="hours")ctl=measureControl(h.k,r[h.k],"h",.5);
   if(h.type==="minutes")ctl=measureControl(h.k,r[h.k],"min",5);
-  if(h.type==="chips")ctl='<div class="chips">'+["Pizza","Perrito caliente","Hamburguesa","Dulces/postres"].map(x=>'<button class="chip '+(r.junk.includes(x)?"on":"")+'" data-chip="'+x+'">'+x+'</button>').join("")+'</div>';
+  if(h.type==="chips")ctl='<div class="chips">'+["Pizza","Perrito caliente","Hamburguesa","Dulces","Postres"].map(x=>'<button class="chip '+(r.junk.includes(x)?"on":"")+'" data-chip="'+x+'">'+x+'</button>').join("")+'</div>';
   return '<div class="card"><div class="row"><div class="label"><div class="ico">'+h.icon+'</div><div><div class="title">'+h.name+'</div><div class="hint">'+h.hint+'</div></div></div>'+(h.type==="chips"?"":ctl)+'</div>'+(h.type==="chips"?ctl:"")+'</div>'
  }).join("");
  bind();renderHistory();renderStats()
