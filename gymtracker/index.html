@@ -33,21 +33,11 @@
 
 <div id="cardioForm" class="hidden bg-slate-800 rounded-xl p-5 mb-5 shadow-lg border border-slate-700">
   <button onclick="backToActivity()" class="text-sm text-slate-400 mb-3">← Cambiar actividad</button>
-  <h2 class="text-lg font-bold text-emerald-400 mb-4">Registrar cardio</h2>
-  <div id="cardioTypeWrap" class="mb-4">
-    <label class="text-xs text-slate-400 block mb-2">Actividad</label>
-    <div class="grid grid-cols-3 gap-2">
-      <button type="button" data-cardio="Bicicleta" onclick="selectCardioType(this)" class="cardioType py-3 rounded-lg border border-slate-600 bg-slate-900 font-semibold">🚲 Bicicleta</button>
-      <button type="button" data-cardio="Caminata" onclick="selectCardioType(this)" class="cardioType py-3 rounded-lg border border-slate-600 bg-slate-900 font-semibold">🚶 Caminata</button>
-      <button type="button" data-cardio="Carrera" onclick="selectCardioType(this)" class="cardioType py-3 rounded-lg border border-slate-600 bg-slate-900 font-semibold">🏃 Carrera</button>
-    </div>
-  </div>
-  <div class="grid grid-cols-2 gap-3 mb-4">
-    <div><label class="text-xs text-slate-400 block mb-1">Hora inicio</label><input id="cardioStart" type="time" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"></div>
-    <div><label class="text-xs text-slate-400 block mb-1">Hora finalización</label><input id="cardioEnd" type="time" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"></div>
-  </div>
-  <div class="mb-4"><label class="text-xs text-slate-400 block mb-1">Observaciones (opcional)</label><textarea id="cardioNotes" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"></textarea></div>
-  <button onclick="saveCardio()" class="w-full py-4 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg">Guardar cardio</button>
+  <h2 id="cardioTitle" class="text-lg font-bold text-emerald-400 mb-1">Registrar cardio</h2>
+  <p class="text-sm text-slate-400 mb-4">Marca los ejercicios realizados y ajusta el tiempo si es necesario.</p>
+  <div id="cardioExerciseList" class="space-y-3"></div>
+  <div class="mt-4"><label class="text-xs text-slate-400 block mb-1">Observaciones (opcional)</label><textarea id="cardioNotes" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white"></textarea></div>
+  <button onclick="saveCardio()" class="mt-4 w-full py-4 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg">Guardar cardio</button>
 </div>
 
 <div id="strengthArea" class="hidden">
@@ -183,7 +173,22 @@
 
 
     let cardioPlace = "";
-    let cardioType = "";
+    let cardioTemplates = {
+      gym: [
+        {id:"TREADMILL", name:"Cinta", minutes:30},
+        {id:"BIKE_GYM", name:"Bicicleta", minutes:30},
+        {id:"SPINNING", name:"Bicicleta de spinning", minutes:30}
+      ],
+      home: [
+        {id:"BIKE_HOME", name:"Bicicleta", minutes:30},
+        {id:"WALK", name:"Caminata", minutes:30},
+        {id:"RUN", name:"Carrera", minutes:30}
+      ]
+    };
+    try {
+      const c=JSON.parse(localStorage.getItem("gymCardioTemplates")||"null");
+      if(c && c.gym && c.home) cardioTemplates=c;
+    } catch(e){}
 
     function showOnly(id) {
       ["activityChooser","cardioChooser","cardioForm","strengthArea"].forEach(x => {
@@ -191,42 +196,74 @@
       });
     }
     function chooseActivity(type) {
-      if(type==="strength") { showOnly("strengthArea"); }
-      else { showOnly("cardioChooser"); }
+      if(type==="strength") showOnly("strengthArea");
+      else showOnly("cardioChooser");
     }
-    function backToActivity() { cardioPlace=""; cardioType=""; showOnly("activityChooser"); }
+    function backToActivity() { cardioPlace=""; showOnly("activityChooser"); }
     function chooseCardioPlace(place) {
-      cardioPlace=place; cardioType="";
+      cardioPlace=place;
       showOnly("cardioForm");
-      const wrap=document.getElementById("cardioTypeWrap");
-      wrap.querySelector("label").textContent = place==="gym" ? "Actividad de cardio en gimnasio" : "Actividad";
-      document.querySelectorAll(".cardioType").forEach(b=>b.classList.remove("bg-emerald-500","text-slate-950","border-emerald-500"));
-      const now=new Date(); document.getElementById("cardioStart").value=now.toTimeString().slice(0,5);
-      document.getElementById("cardioEnd").value="";
+      document.getElementById("cardioTitle").textContent = place==="gym" ? "Cardio · Gimnasio" : "Cardio · Casa / exterior";
+      renderCardioExercises();
+      document.getElementById("cardioNotes").value="";
     }
-    function selectCardioType(btn) {
-      cardioType=btn.dataset.cardio;
-      document.querySelectorAll(".cardioType").forEach(b=>b.classList.remove("bg-emerald-500","text-slate-950","border-emerald-500"));
-      btn.classList.add("bg-emerald-500","text-slate-950","border-emerald-500");
+    function renderCardioExercises() {
+      const list=document.getElementById("cardioExerciseList");
+      list.innerHTML=cardioTemplates[cardioPlace].map((e,i)=>`
+        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
+          <div class="flex items-center gap-3">
+            <input id="cardio-check-${i}" type="checkbox" class="w-6 h-6 accent-emerald-500" onchange="toggleCardioExercise(${i})">
+            <label for="cardio-check-${i}" class="flex-1 font-bold text-base">${e.name}</label>
+            <button onclick="editCardioExercise(${i})" class="text-slate-400 px-2 py-1" title="Editar">✎</button>
+          </div>
+          <div id="cardio-time-${i}" class="hidden mt-3 pl-9">
+            <label class="text-xs text-slate-400 block mb-1">Tiempo realizado (min)</label>
+            <div class="flex items-center gap-2">
+              <button onclick="stepCardioMinutes(${i},-5)" class="w-12 h-12 rounded-lg bg-slate-800 border border-slate-600 text-xl font-bold">−</button>
+              <input id="cardio-min-${i}" type="number" min="1" step="1" value="${e.minutes}" class="flex-1 min-w-0 bg-slate-800 border border-slate-600 rounded-lg p-3 text-center text-lg font-bold text-white">
+              <button onclick="stepCardioMinutes(${i},5)" class="w-12 h-12 rounded-lg bg-slate-800 border border-slate-600 text-xl font-bold">+</button>
+            </div>
+          </div>
+        </div>`).join("");
+    }
+    function toggleCardioExercise(i) {
+      document.getElementById("cardio-time-"+i).classList.toggle("hidden",!document.getElementById("cardio-check-"+i).checked);
+    }
+    function stepCardioMinutes(i,d) {
+      const el=document.getElementById("cardio-min-"+i);
+      el.value=Math.max(1,(parseInt(el.value)||30)+d);
+    }
+    function editCardioExercise(i) {
+      const e=cardioTemplates[cardioPlace][i];
+      const name=prompt("Nombre del ejercicio:",e.name);
+      if(name===null) return;
+      const mins=prompt("Tiempo predeterminado (minutos):",e.minutes);
+      if(mins===null) return;
+      const n=parseInt(mins);
+      if(!name.trim() || !n || n<1) return alert("Nombre o tiempo no válido.");
+      e.name=name.trim(); e.minutes=n;
+      localStorage.setItem("gymCardioTemplates",JSON.stringify(cardioTemplates));
+      renderCardioExercises();
     }
     function saveCardio() {
-      const start=document.getElementById("cardioStart").value;
-      const end=document.getElementById("cardioEnd").value;
-      if(!cardioType) return alert("Selecciona bicicleta, caminata o carrera.");
-      if(!start || !end) return alert("Indica la hora de inicio y de finalización.");
-      let startM=Number(start.slice(0,2))*60+Number(start.slice(3));
-      let endM=Number(end.slice(0,2))*60+Number(end.slice(3));
-      if(endM<startM) endM+=1440;
-      const duration=endM-startM;
-      if(duration<=0) return alert("La hora final debe ser posterior a la hora de inicio.");
+      const done=[];
+      cardioTemplates[cardioPlace].forEach((e,i)=>{
+        const chk=document.getElementById("cardio-check-"+i);
+        if(chk && chk.checked) {
+          const m=Math.max(1,parseInt(document.getElementById("cardio-min-"+i).value)||e.minutes);
+          done.push({id:e.id,name:e.name,minutes:m});
+        }
+      });
+      if(!done.length) return alert("Marca al menos un ejercicio realizado.");
       let history=[]; try{history=JSON.parse(localStorage.getItem("gymHistory")||"[]")}catch(e){}
       const now=new Date();
       const date=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
-      history.push({date,time:start,routine:"Cardio",activityType:"cardio",place:cardioPlace,type:cardioType,startTime:start,endTime:end,durationMinutes:duration,notes:document.getElementById("cardioNotes").value.trim(),exercises:[]});
+      const time=now.toTimeString().slice(0,5);
+      const total=done.reduce((a,e)=>a+e.minutes,0);
+      history.push({date,time,routine:"Cardio",activityType:"cardio",place:cardioPlace,cardioExercises:done,durationMinutes:total,notes:document.getElementById("cardioNotes").value.trim(),exercises:[]});
       history.sort((a,b)=>((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||"")));
       localStorage.setItem("gymHistory",JSON.stringify(history));
-      alert("Cardio guardado · "+cardioType+" · "+duration+" min");
-      document.getElementById("cardioNotes").value="";
+      alert("Cardio guardado · "+done.map(e=>e.name+" "+e.minutes+" min").join(" · "));
       backToActivity();
     }
 
