@@ -23,7 +23,7 @@
 </div>
 
 <div id="cardioChooser" class="hidden bg-slate-800 rounded-xl p-5 mb-5 shadow-lg border border-slate-700">
-  <button onclick="backToActivity()" class="text-sm text-slate-400 mb-3">← Volver</button>
+  <button onclick="backToActivity()" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-semibold mb-3">← Volver</button>
   <h2 class="text-lg font-bold mb-4">¿Dónde haces cardio?</h2>
   <div class="grid grid-cols-2 gap-3">
     <button onclick="chooseCardioPlace('gym')" class="py-4 rounded-xl bg-emerald-500 text-slate-950 font-bold">Gimnasio</button>
@@ -32,7 +32,7 @@
 </div>
 
 <div id="cardioForm" class="hidden bg-slate-800 rounded-xl p-5 mb-5 shadow-lg border border-slate-700">
-  <button onclick="backToActivity()" class="text-sm text-slate-400 mb-3">← Cambiar actividad</button>
+  <button onclick="backToCardioPlace()" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-semibold mb-3">← Volver</button>
   <h2 id="cardioTitle" class="text-lg font-bold text-emerald-400 mb-1">Registrar cardio</h2>
   <p class="text-sm text-slate-400 mb-4">Marca los ejercicios realizados y ajusta el tiempo si es necesario.</p>
   <div id="cardioExerciseList" class="space-y-3"></div>
@@ -41,6 +41,7 @@
 </div>
 
 <div id="strengthArea" class="hidden">
+<button onclick="backToActivity()" class="mb-3 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold">← Volver</button>
 <div class="bg-slate-800 rounded-xl p-4 mb-5 shadow-lg border border-slate-700 space-y-3">
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -74,7 +75,7 @@
       <div class="max-w-xl mx-auto pb-10">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-emerald-400">Editar rutinas</h2>
-          <button onclick="closeRoutineEditor()" class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700">Cerrar</button>
+          <button onclick="closeRoutineEditor()" class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700">← Volver</button>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-4">
           <button id="editR1" onclick="renderRoutineEditor('rutina1')" class="py-3 rounded-lg font-bold bg-emerald-500 text-slate-950">Día 1</button>
@@ -200,6 +201,7 @@
       else showOnly("cardioChooser");
     }
     function backToActivity() { cardioPlace=""; showOnly("activityChooser"); }
+    function backToCardioPlace() { cardioPlace=""; showOnly("cardioChooser"); }
     function chooseCardioPlace(place) {
       cardioPlace=place;
       showOnly("cardioForm");
