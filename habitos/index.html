@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#f4f6f5">
+<title>Hábitos</title>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--ink:#17211c;--muted:#6d7771;--line:#dce2de;--good:#247a4b;--bad:#a54b43;--accent:#245f49}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:90px}
+header{padding:calc(18px + env(safe-area-inset-top)) 18px 10px;position:sticky;top:0;background:rgba(244,246,245,.94);backdrop-filter:blur(12px);z-index:5}
+h1{font-size:28px;margin:0}.sub{color:var(--muted);margin-top:4px}.wrap{padding:8px 14px;max-width:700px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:15px;margin:10px 0;box-shadow:0 2px 8px #00000008}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-weight:700;font-size:17px}.hint{font-size:13px;color:var(--muted);margin-top:4px}
+.segment{display:flex;background:#edf1ee;border-radius:11px;padding:3px;gap:2px}.segment button{border:0;background:transparent;padding:9px 14px;border-radius:9px;font-size:15px}.segment button.on{background:white;box-shadow:0 1px 4px #0002;font-weight:700}
+.num{display:flex;align-items:center;gap:8px}.num button{width:40px;height:40px;border:1px solid var(--line);background:#fff;border-radius:11px;font-size:22px}.num input{width:58px;text-align:center;font-size:18px;border:1px solid var(--line);border-radius:10px;padding:8px}
+input[type=number]{font-size:17px;border:1px solid var(--line);border-radius:10px;padding:9px;width:90px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px;font-size:14px}.chip.on{background:#e1eee7;border-color:#7fa891;font-weight:650}
+.primary{width:100%;border:0;border-radius:14px;background:var(--accent);color:#fff;padding:15px;font-size:17px;font-weight:700;margin:12px 0}.feedback{border-left:4px solid var(--good);padding-left:12px;margin:10px 0;line-height:1.35}
+nav{position:fixed;bottom:0;left:0;right:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);display:flex;z-index:10}
+nav button{flex:1;border:0;background:none;padding:8px 2px;color:var(--muted);font-size:12px}nav button b{display:block;font-size:20px;margin-bottom:2px}nav button.on{color:var(--accent);font-weight:700}
+.page{display:none}.page.on{display:block}.stat{font-size:26px;font-weight:750}.small{font-size:13px;color:var(--muted)}
+textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit}
+.secondary{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:15px;margin:4px}.danger{color:var(--bad)}
+</style>
+</head><body>
+<header><h1>Hábitos</h1><div class="sub" id="dateLabel"></div></header>
+<div class="wrap">
+<section id="today" class="page on"><div id="habits"></div><button class="primary" id="finish">Finalizar registro de hoy</button><div id="feedback"></div></section>
+<section id="evolution" class="page"><div class="card"><div class="title">Evolución reciente</div><div class="hint">Se irá haciendo más útil conforme acumules registros.</div></div><div id="stats"></div></section>
+<section id="history" class="page"><div id="historyList"></div></section>
+<section id="settings" class="page">
+<div class="card"><div class="title">Copia de seguridad</div><div class="hint">Tus datos se guardan solo en este navegador. Exporta una copia periódicamente.</div><button class="secondary" id="export">Exportar XML</button><label class="secondary" style="display:inline-block">Importar XML<input id="import" type="file" accept=".xml,text/xml" hidden></label></div>
+<div class="card"><div class="title">Hábitos predefinidos</div><div class="hint">Deporte · dientes · lectura · ordenador · sueño · cansancio · cerveza sin alcohol · alcohol · bebidas azucaradas · comida no saludable.</div><button class="secondary danger" id="reset">Restablecer datos de prueba</button></div>
+</section>
+</div>
+<nav><button class="on" data-page="today"><b>✓</b>Hoy</button><button data-page="evolution"><b>↗</b>Evolución</button><button data-page="history"><b>◷</b>Historial</button><button data-page="settings"><b>⚙</b>Ajustes</button></nav>
+<script>
+const KEY="habitos_onio_v1";
+const today=()=>new Date().toISOString().slice(0,10);
+const defaults=()=>({sport:null,teeth:0,read:null,computer:"",sleep:null,tired:null,beer0:0,alcohol:0,sugary:0,junk:[]});
+let db;try{db=JSON.parse(localStorage.getItem(KEY))||{records:{}}}catch(e){db={records:{}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function rec(){return db.records[today()]||(db.records[today()]=defaults())}
+const habits=[
+["sport","Deporte","¿Has hecho deporte hoy?","bool"],
+["teeth","Lavado de dientes","Número de veces","count"],
+["read","Lectura","¿Has leído hoy?","bool"],
+["computer","Uso del ordenador","Horas aproximadas","hours"],
+["sleep","Sueño","¿Has dormido bien?","bool"],
+["tired","Cansancio","¿Te has sentido cansado?","bool"],
+["beer0","Cerveza sin alcohol","Número de cervezas","count"],
+["alcohol","Bebidas con alcohol","Número de consumiciones","count"],
+["sugary","Refrescos / bebidas azucaradas","Número de consumiciones","count"],
+["junk","Comida no saludable","Marca lo consumido","chips"]
+];
+function boolCtl(k,v){return '<div class="segment"><button data-bool="'+k+'" data-v="true" class="'+(v===true?"on":"")+'">Sí</button><button data-bool="'+k+'" data-v="false" class="'+(v===false?"on":"")+'">No</button></div>'}
+function countCtl(k,v){return '<div class="num"><button data-minus="'+k+'">−</button><input inputmode="numeric" type="number" min="0" data-num="'+k+'" value="'+(v||0)+'"><button data-plus="'+k+'">+</button></div>'}
+function render(){let r=rec(),h="";habits.forEach(x=>{let[k,t,d,type]=x;let ctl=type==="bool"?boolCtl(k,r[k]):type==="count"?countCtl(k,r[k]):type==="hours"?'<input inputmode="decimal" type="number" min="0" step=".5" data-num="'+k+'" value="'+r[k]+'" placeholder="0"> h':type==="chips"?'<div class="chips">'+["Pizza","Perrito caliente","Hamburguesa","Dulces/postres"].map(c=>'<button class="chip '+(r.junk.includes(c)?"on":"")+'" data-chip="'+c+'">'+c+'</button>').join("")+'</div>':"";h+='<div class="card"><div class="row"><div><div class="title">'+t+'</div><div class="hint">'+d+'</div></div>'+(type==="chips"?"":ctl)+'</div>'+(type==="chips"?ctl:"")+'</div>'});document.querySelector("#habits").innerHTML=h;bind();renderHistory();renderStats()}
+function bind(){
+document.querySelectorAll("[data-bool]").forEach(b=>b.onclick=()=>{rec()[b.dataset.bool]=b.dataset.v==="true";save();render()});
+document.querySelectorAll("[data-plus]").forEach(b=>b.onclick=()=>{let k=b.dataset.plus;rec()[k]=(+rec()[k]||0)+1;save();render()});
+document.querySelectorAll("[data-minus]").forEach(b=>b.onclick=()=>{let k=b.dataset.minus;rec()[k]=Math.max(0,(+rec()[k]||0)-1);save();render()});
+document.querySelectorAll("[data-num]").forEach(i=>i.onchange=()=>{rec()[i.dataset.num]=i.value===""?"":Math.max(0,+i.value);save()});
+document.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>{let a=rec().junk,c=b.dataset.chip;a.includes(c)?a.splice(a.indexOf(c),1):a.push(c);save();render()})
+}
+function streak(predicate){let n=0,d=new Date();for(let i=0;i<1000;i++){let k=d.toISOString().slice(0,10),r=db.records[k];if(!r||!predicate(r))break;n++;d.setDate(d.getDate()-1)}return n}
+function feedback(){let r=rec(),m=[];let pizza=streak(x=>!x.junk.includes("Pizza"));if(pizza>=7)m.push("🍕 "+pizza+" días sin tomar pizza. Vas por buen camino.");let alc=streak(x=>(+x.alcohol||0)===0);if(alc>=7)m.push("🌿 "+alc+" días sin bebidas con alcohol.");let badsleep=streak(x=>x.sleep===false);if(badsleep>=2)m.push("😴 Llevas "+badsleep+" días indicando que no has dormido bien. Es una tendencia que conviene observar.");let reading=Object.values(db.records).slice(-7).filter(x=>x.read===true).length;if(reading>=5)m.push("📚 Has leído "+reading+" de los últimos 7 días. Buena regularidad.");if(r.sport===true)m.push("🏃 Has registrado actividad física hoy.");if(!m.length)m.push("Registro guardado. Conforme acumules días, aparecerán aquí rachas y tendencias relevantes.");document.querySelector("#feedback").innerHTML='<div class="card"><div class="title">Resumen de hoy</div>'+m.map(x=>'<div class="feedback">'+x+'</div>').join("")+"</div>"}
+function renderHistory(){let keys=Object.keys(db.records).sort().reverse();document.querySelector("#historyList").innerHTML=keys.length?keys.map(k=>{let r=db.records[k];return '<div class="card"><div class="title">'+k+'</div><div class="hint">Deporte: '+(r.sport===null?"—":r.sport?"Sí":"No")+' · Dientes: '+r.teeth+' · Lectura: '+(r.read===null?"—":r.read?"Sí":"No")+' · Ordenador: '+(r.computer||"—")+' h</div></div>'}).join(""):'<div class="card">Todavía no hay registros.</div>'}
+function renderStats(){let a=Object.values(db.records),n=a.length,reads=a.filter(x=>x.read).length,sports=a.filter(x=>x.sport).length;document.querySelector("#stats").innerHTML='<div class="card"><div class="stat">'+n+'</div><div class="small">días registrados</div></div><div class="card"><div class="stat">'+reads+'</div><div class="small">días con lectura</div></div><div class="card"><div class="stat">'+sports+'</div><div class="small">días con deporte</div></div>'}
+document.querySelector("#finish").onclick=()=>{save();feedback()};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.page").forEach(x=>x.classList.remove("on"));b.classList.add("on");document.querySelector("#"+b.dataset.page).classList.add("on");render()});
+document.querySelector("#export").onclick=()=>{let xml='<?xml version="1.0" encoding="UTF-8"?><habitos><json><![CDATA['+JSON.stringify(db)+']]></json></habitos>';let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([xml],{type:"text/xml"}));a.download="habitos_"+today()+".xml";a.click();URL.revokeObjectURL(a.href)};
+document.querySelector("#import").onchange=e=>{let f=e.target.files[0];if(!f)return;let rd=new FileReader();rd.onload=()=>{try{let x=new DOMParser().parseFromString(rd.result,"text/xml");db=JSON.parse(x.querySelector("json").textContent);save();render();alert("Copia importada correctamente.")}catch(err){alert("No se pudo importar el archivo.")}};rd.readAsText(f)};
+document.querySelector("#reset").onclick=()=>{if(confirm("¿Borrar todos los registros guardados en este navegador?")){db={records:{}};save();render();document.querySelector("#feedback").innerHTML=""}};
+document.querySelector("#dateLabel").textContent=new Intl.DateTimeFormat("es-ES",{weekday:"long",day:"numeric",month:"long"}).format(new Date());
+render();
+</script></body></html>
