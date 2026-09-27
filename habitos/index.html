@@ -5,25 +5,29 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#f4f6f5">
 <title>Hábitos</title>
 <style>
-:root{--bg:#f4f6f5;--card:#fff;--ink:#17211c;--muted:#6d7771;--line:#dce2de;--good:#247a4b;--bad:#a54b43;--accent:#245f49}
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:90px}
-header{padding:calc(18px + env(safe-area-inset-top)) 18px 10px;position:sticky;top:0;background:rgba(244,246,245,.94);backdrop-filter:blur(12px);z-index:5}
-h1{font-size:28px;margin:0}.sub{color:var(--muted);margin-top:4px}.wrap{padding:8px 14px;max-width:700px;margin:auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:15px;margin:10px 0;box-shadow:0 2px 8px #00000008}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-weight:700;font-size:17px}.hint{font-size:13px;color:var(--muted);margin-top:4px}
-.segment{display:flex;background:#edf1ee;border-radius:11px;padding:3px;gap:2px}.segment button{border:0;background:transparent;padding:9px 14px;border-radius:9px;font-size:15px}.segment button.on{background:white;box-shadow:0 1px 4px #0002;font-weight:700}
-.num{display:flex;align-items:center;gap:8px}.num button{width:40px;height:40px;border:1px solid var(--line);background:#fff;border-radius:11px;font-size:22px}.num input{width:58px;text-align:center;font-size:18px;border:1px solid var(--line);border-radius:10px;padding:8px}
-input[type=number]{font-size:17px;border:1px solid var(--line);border-radius:10px;padding:9px;width:90px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px;font-size:14px}.chip.on{background:#e1eee7;border-color:#7fa891;font-weight:650}
-.primary{width:100%;border:0;border-radius:14px;background:var(--accent);color:#fff;padding:15px;font-size:17px;font-weight:700;margin:12px 0}.feedback{border-left:4px solid var(--good);padding-left:12px;margin:10px 0;line-height:1.35}
-nav{position:fixed;bottom:0;left:0;right:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);display:flex;z-index:10}
-nav button{flex:1;border:0;background:none;padding:8px 2px;color:var(--muted);font-size:12px}nav button b{display:block;font-size:20px;margin-bottom:2px}nav button.on{color:var(--accent);font-weight:700}
-.page{display:none}.page.on{display:block}.stat{font-size:26px;font-weight:750}.small{font-size:13px;color:var(--muted)}
-textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit}
-.secondary{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:15px;margin:4px}.danger{color:var(--bad)}
+:root{--bg:#f7f7f4;--card:#fff;--ink:#18211d;--muted:#7a817d;--line:#e9ebe8;--accent:#376d58;--accent2:#e9f2ed;--shadow:0 8px 28px rgba(31,47,39,.07)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{background:var(--bg)}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:104px}
+button,input,label{font:inherit}button{cursor:pointer}header{padding:calc(24px + env(safe-area-inset-top)) 20px 14px;max-width:700px;margin:auto}
+h1{font-size:34px;letter-spacing:-1.2px;margin:0;font-weight:780}.sub{color:var(--muted);margin-top:5px;font-size:15px;text-transform:capitalize}.wrap{padding:0 14px;max-width:700px;margin:auto}
+.card{background:var(--card);border:1px solid rgba(220,224,220,.72);border-radius:22px;padding:17px;margin:11px 0;box-shadow:var(--shadow)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px}.title{font-weight:720;font-size:17px;letter-spacing:-.25px}.hint{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.3}
+.card:has(.title)::before{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--accent2);margin-bottom:10px;font-size:18px}
+.card:nth-child(1)::before{content:"🏃"}.card:nth-child(2)::before{content:"🪥"}.card:nth-child(3)::before{content:"📖"}.card:nth-child(4)::before{content:"💻"}.card:nth-child(5)::before{content:"🌙"}.card:nth-child(6)::before{content:"🔋"}.card:nth-child(7)::before{content:"🍺"}.card:nth-child(8)::before{content:"🥃"}.card:nth-child(9)::before{content:"🥤"}.card:nth-child(10)::before{content:"🍔"}
+.segment{display:flex;background:#f1f3f1;border-radius:13px;padding:3px;gap:2px;min-width:124px}.segment button{flex:1;border:0;background:transparent;padding:10px 13px;border-radius:10px;font-size:15px;color:#737a76}.segment button.on{background:white;color:var(--accent);box-shadow:0 2px 7px #24372e18;font-weight:750}
+.num{display:flex;align-items:center;gap:7px;background:#f5f6f5;border-radius:14px;padding:3px}.num button{width:40px;height:40px;border:0;background:#fff;border-radius:11px;font-size:22px;color:var(--accent);box-shadow:0 1px 4px #0000000d}.num input{width:42px;text-align:center;font-size:18px;font-weight:700;border:0;background:transparent;padding:7px 0;color:var(--ink)}
+input[type=number]{font-size:17px;border:1px solid var(--line);background:#f8f9f8;border-radius:12px;padding:11px;width:92px;outline:none}input[type=number]:focus{border-color:#92b3a3;background:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.chip{border:1px solid var(--line);background:#fafbfa;border-radius:999px;padding:10px 13px;font-size:14px;color:#626a66}.chip.on{background:var(--accent2);border-color:#9dbdac;color:#285943;font-weight:700}
+.primary{width:100%;border:0;border-radius:17px;background:var(--accent);color:#fff;padding:17px;font-size:17px;font-weight:750;margin:17px 0;box-shadow:0 8px 20px #376d5830}.primary:active{transform:scale(.99)}
+.feedback{background:#f5faf7;border-radius:13px;padding:12px;margin:9px 0;line-height:1.4;color:#315c49}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:700px;padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:flex;z-index:10}
+nav button{flex:1;border:0;background:none;padding:7px 2px;color:#909692;font-size:11px}nav button b{display:block;font-size:21px;line-height:23px;margin-bottom:2px;font-weight:500}nav button.on{color:var(--accent);font-weight:750}
+.page{display:none}.page.on{display:block}.stat{font-size:31px;font-weight:780;letter-spacing:-1px}.small{font-size:13px;color:var(--muted)}
+.secondary{border:1px solid var(--line);background:#fafbfa;border-radius:13px;padding:12px 14px;font-size:15px;margin:8px 5px 2px 0;color:var(--ink)}.danger{color:#a04d47}
+#evolution>.card:first-child,#settings>.card{padding:20px}#evolution>.card:first-child::before,#settings>.card::before,#historyList .card::before,#feedback .card::before{display:none}
+@media(max-width:430px){.row{align-items:center}.title{font-size:16px}.card{padding:15px}.segment{min-width:116px}.segment button{padding:10px 11px}}
 </style>
 </head><body>
-<header><h1>Hábitos</h1><div class="sub" id="dateLabel"></div></header>
+<header><h1>Mi día</h1><div class="sub" id="dateLabel"></div></header>
 <div class="wrap">
 <section id="today" class="page on"><div id="habits"></div><button class="primary" id="finish">Finalizar registro de hoy</button><div id="feedback"></div></section>
 <section id="evolution" class="page"><div class="card"><div class="title">Evolución reciente</div><div class="hint">Se irá haciendo más útil conforme acumules registros.</div></div><div id="stats"></div></section>
