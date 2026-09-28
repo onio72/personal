@@ -5,9 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro Gimnasio</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { width:100%; max-width:100%; overflow-x:hidden; }
+    *, *::before, *::after { box-sizing:border-box; }
+    input, textarea, select, button { max-width:100%; }
+    pre { max-width:100%; white-space:pre-wrap; overflow-wrap:anywhere; }
+    #exerciseList > div { width:100%; max-width:100%; }
+  </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 pb-28">
-  <div class="max-w-xl mx-auto">
+  <div class="w-full max-w-xl mx-auto min-w-0">
     <header class="mb-6 border-b border-slate-700 pb-3">
       <div class="flex justify-between items-center gap-2">
         <h1 class="text-xl font-bold text-emerald-400">Gym Tracker</h1>
@@ -330,14 +337,16 @@
         completedSets[ex.id] = 0;
 
         const card = document.createElement("div");
-        card.className = "bg-slate-800 border border-slate-700 rounded-xl p-4 shadow";
+        card.className = "bg-slate-800 border border-slate-700 rounded-xl p-4 shadow min-w-0 transition-all";
+        card.id = "exercise-card-" + ex.id;
+        card.dataset.exerciseId = ex.id;
         card.innerHTML = `
-          <div class="flex justify-between items-start mb-3">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
             <div>
               <h2 class="font-bold text-base text-white">${ex.name}</h2>
               <p class="text-xs text-slate-400">Objetivo: ${prevSets} series × ${prevReps} reps | ${prevKg} kg</p>
             </div>
-            <button id="counter-${ex.id}" onclick="incrementSet('${ex.id}', ${prevSets})" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition">
+            <button id="counter-${ex.id}" onclick="incrementSet('${ex.id}', ${prevSets})" class="w-full sm:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-2.5 rounded-lg text-sm font-bold active:scale-95 transition">
               Completadas: <span id="count-val-${ex.id}">0</span>/${prevSets}
             </button>
           </div>
@@ -404,15 +413,41 @@
       }
     }
 
+    function reorderStrengthExercises() {
+      const container=document.getElementById("exerciseList");
+      if(!container) return;
+      const cards=[...container.querySelectorAll("[data-exercise-id]")];
+      cards.sort((a,b)=>{
+        const aid=a.dataset.exerciseId, bid=b.dataset.exerciseId;
+        const ae=routineTemplates[activeRoutine].find(e=>e.id===aid);
+        const be=routineTemplates[activeRoutine].find(e=>e.id===bid);
+        const am=parseInt(document.getElementById("sets-"+aid)?.value)||ae?.targetSets||0;
+        const bm=parseInt(document.getElementById("sets-"+bid)?.value)||be?.targetSets||0;
+        const ad=(completedSets[aid]||0)>=am, bd=(completedSets[bid]||0)>=bm;
+        if(ad!==bd) return ad?1:-1;
+        return routineTemplates[activeRoutine].findIndex(e=>e.id===aid)-routineTemplates[activeRoutine].findIndex(e=>e.id===bid);
+      });
+      cards.forEach(card=>{
+        const id=card.dataset.exerciseId;
+        const ex=routineTemplates[activeRoutine].find(e=>e.id===id);
+        const max=parseInt(document.getElementById("sets-"+id)?.value)||ex?.targetSets||0;
+        const done=(completedSets[id]||0)>=max;
+        card.classList.toggle("opacity-60",done);
+        container.appendChild(card);
+      });
+    }
+
     function decrementSet(exId) {
       completedSets[exId] = Math.max(0, (completedSets[exId] || 0) - 1);
       updateCounter(exId);
+      reorderStrengthExercises();
     }
 
     function incrementSet(exId, maxSets) {
       if (suppressCounterClick) return;
       completedSets[exId] = Math.min(maxSets, (completedSets[exId] || 0) + 1);
       updateCounter(exId);
+      reorderStrengthExercises();
     }
 
     function openRoutineEditor() {
