@@ -56,9 +56,9 @@
 <button onclick="backToActivity()" class="mb-3 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold">← Volver</button>
 <div class="sticky top-0 z-30 mb-4 bg-slate-950/95 backdrop-blur py-2">
   <div class="bg-slate-800 border border-emerald-500/40 rounded-2xl px-4 py-3 text-center shadow-lg">
-    <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">Series pendientes</div>
-    <div id="pendingSetsCounter" class="text-5xl leading-none font-black text-emerald-400 mt-1">0</div>
-    <div id="pendingRepsDetail" class="text-xs text-slate-400 mt-2">Cada pulsación resta una serie</div>
+    <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">Progreso de la sesión</div>
+    <div id="pendingSetsCounter" class="text-5xl leading-none font-black text-emerald-400 mt-1">0%</div>
+    <div id="pendingRepsDetail" class="text-xs text-slate-400 mt-2">0 de 0 series completadas</div>
   </div>
 </div>
 <div class="bg-slate-800 rounded-xl p-4 mb-5 shadow-lg border border-slate-700 space-y-3">
@@ -425,16 +425,18 @@
     }
 
     function updatePendingSetsCounter() {
-      let pendingSets=0;
+      let totalSets=0, doneSets=0;
       (routineTemplates[activeRoutine]||[]).forEach(ex=>{
-        const totalSets=parseInt(document.getElementById("sets-"+ex.id)?.value)||ex.targetSets||0;
-        const done=Math.min(totalSets,completedSets[ex.id]||0);
-        pendingSets+=Math.max(0,totalSets-done);
+        const total=parseInt(document.getElementById("sets-"+ex.id)?.value)||ex.targetSets||0;
+        const done=Math.min(total,completedSets[ex.id]||0);
+        totalSets+=total;
+        doneSets+=done;
       });
+      const pct=totalSets ? Math.round((doneSets/totalSets)*100) : 0;
       const n=document.getElementById("pendingSetsCounter");
       const d=document.getElementById("pendingRepsDetail");
-      if(n) n.textContent=pendingSets;
-      if(d) d.textContent=pendingSets===0 ? "Sesión completada" : "Cada serie completada resta 1";
+      if(n) n.textContent=pct+"%";
+      if(d) d.textContent=doneSets+" de "+totalSets+" series completadas";
     }
 
     function reorderStrengthExercises() {
